@@ -42,3 +42,11 @@ dimensions PM IQR in physical space is less than 3 km/s).  These clusters are co
 and DEC space, distance, and M_G and bp-rp space.  If membership probabilities are requested, a color map is applied to each cluster's 
 data points to represent these probabilities.  A different figure window is produced for each cluster and their members are given larger
 data size relative to the other clusters/nonclustered data for clarity/comparison.
+
+cluster_hdbscan_wdsearch.py:
+This program is a variant of cluster_hdbscan.py that performs that same analysis while also checking if clusters that are consistent with
+star clusters contain any member sources with characteristics consistent with a white dwarf.  If yes, the absolute magnitude (corrected by
+its own parallax-based distance rather than the median parallax of the cluster) and color are output to screen.  For nearby white dwarfs
+(within 150 pc), its own parallax should be used, but for further analysis, more distant white dwarfs should consider correcting 
+magnitudes based on their median cluster parallax.  Additionally, zero reddening and extinction are adopted in the output, but they may 
+play an important role and should be considered before further analysis with this photometry.
