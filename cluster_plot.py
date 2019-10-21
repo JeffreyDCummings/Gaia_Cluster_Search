@@ -25,12 +25,12 @@ def color_setup(clustered_data, membership_plot, unique_group, palette):
         for key in clustered_dict.keys():
             clustered_dict[key] = clustered_data[:][clustered_data.clusternum == key]
         cmapdict = {-1:"Greys", 0:"Blues", 1:"Oranges", 2:"Greens", 3:"Reds",\
-         4:"Purples", 5:"PuBu", 6:"YlGn", 7:"Greys", 8:"Purples", 9:"Blues",\
-          10:"Greens", 11:"Reds", 12:"Oranges", 13:"PuBu", 14:"YlGn", 15:"Greys"}
+         4:"Purples", 5:"copper", 6:"cool", 7:"bone", 8:"autumn", 9:"GnBu",\
+          10:"PuBu", 11:"Reds", 12:"Oranges", 13:"PuBu", 14:"YlGn", 15:"Greys"}
         return clustered_dict, cmapdict
     return [palette[x] if x >= 0 else (0.0, 0.0, 0.0) for x in clustered_data["clusternum"]]
 
-def distance_hist(clustered_data, distcen, step, palette):
+def distance_hist(clustered_data, distcen, distiqr, step, palette):
     """ A subplot illustrating the cluster distance histogram.  Additionally, the median
     cluster distance and distance IQR are plotted. IQR is preferred for potentially
     non-normally distributed data."""
@@ -40,10 +40,9 @@ def distance_hist(clustered_data, distcen, step, palette):
     plt.xlim(distcen-250, distcen+250)
     bins = np.linspace(distcen-300, distcen+300, 30)
     memberdist = clustered_data[clustered_data["clusternum"] == step]["distance"]
-    pmdistiqr = spy.iqr(clustered_data.loc[clustered_data["clusternum"] == step, ["distance"]])
     plt.hist(memberdist, bins, alpha=0.5, color=palette[step])
     plt.gcf().text(0.09, 0.43, "Distance = "+str(int(distcen))+" pc", fontsize=12)
-    plt.gcf().text(0.32, 0.43, "Distance IQR = "+str(int(pmdistiqr))+" pc", fontsize=12)
+    plt.gcf().text(0.32, 0.43, "Distance IQR = "+str(int(distiqr))+" pc", fontsize=12)
 
 
 def ra_dec_plot_setup(clustered_data, distcen, step):
@@ -57,7 +56,7 @@ def ra_dec_plot_setup(clustered_data, distcen, step):
     decmin = min(clustered_data["dec"])
     decmax = max(clustered_data["dec"])
     raiqr = iqr_calc_angle(clustered_data, step, distcen, "ratransform")
-    ramedian = np.median(clustered_data.loc[clustered_data["clusternum"] == step, ["ra"]])
+    ramedian = np.median(clustered_data.loc[clustered_data["clusternum"] == step, ["rawrapped"]])
 
     # The texts are placed in data space, which pushes them outside the plot and automatically
     # rescales the plot positions to make space for the text.
@@ -104,7 +103,7 @@ def plot_map(unique_group, clustered_dict, cmapdict, normalize, step, xvar_col, 
     it plots non-clustered data as simply black."""
     for group in unique_group:
         if group == -1:
-            plt.scatter(clustered_dict[group][xvar_col], clustered_dict[group][yvar_col], s=0.005,\
+            plt.scatter(clustered_dict[group][xvar_col], clustered_dict[group][yvar_col], s=0.002,\
              alpha=1, color="black")
         elif group == step:
             plt.scatter(clustered_dict[group][xvar_col], clustered_dict[group][yvar_col], s=6,\
@@ -141,6 +140,7 @@ def cluster_plot(clustered_data, membership_plot):
 # always Gaussian, the interquartile ranges are used to analyze parameter variations
 # throughout a cluster.
         distcen = np.median(clustered_data.loc[clustered_data["clusternum"] == step, ["distance"]])
+        distiqr = spy.iqr(clustered_data.loc[clustered_data["clusternum"] == step, ["distance"]])
         pmraiqr = iqr_calc_angle(clustered_data, step, distcen, "pmra")*0.271795
         pmdeciqr = iqr_calc_angle(clustered_data, step, distcen, "pmdec")*0.271795
 
@@ -151,7 +151,7 @@ def cluster_plot(clustered_data, membership_plot):
 # noise/non-members, a 3 km/s cut may remove it from display.  In these cases, you may
 # increase the cut to 4 or 5 km/s, etc., to first analyze its output, but in the end I
 # recommend adjusting the hdbscan min_samples or the parameter scalings.
-        if (pmraiqr < 3 and pmdeciqr < 3):
+        if (pmraiqr < 3 and pmdeciqr < 3 and distiqr < 100):
 
 # To set up the plots, we set a separate Figure for each cluster.  For when membership
 # probability is not shown, we set all clustered data to a large size and nonclustered
@@ -160,7 +160,7 @@ def cluster_plot(clustered_data, membership_plot):
             if membership_plot != 1:
                 sizes = [4 if x == step else 0.003 for x in clustered_data["clusternum"]]
 
-            distance_hist(clustered_data, distcen, step, palette)
+            distance_hist(clustered_data, distcen, distiqr, step, palette)
             ra_dec_plot_setup(clustered_data, distcen, step)
             if membership_plot == 1:
                 plot_map(unique_group, clustered_dict, cmapdict, normalize, step,\
