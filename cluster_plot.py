@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as pltc
 from mpl_toolkits import mplot3d
 
-def iqr_calc_angle(selected_cluster, distcen_in, column):
+def iqr_calc_angle(selected_cluster, distcen, column):
     """ Calculated interquartile range of a cluster group and is scaled to distance
      from angle. """
-    return spy.iqr(selected_cluster[column])*3.14159/180*distcen_in
+    return spy.iqr(selected_cluster[column])*3.14159/180*distcen
 
 def color_setup(clustered_data, membership_plot, unique_group, palette):
     """ If plotting a membership probability color map is wanted, the input dataframe must be
@@ -30,21 +30,21 @@ def color_setup(clustered_data, membership_plot, unique_group, palette):
         return clustered_dict, cmapdict
     return [palette[x] if x >= 0 else (0.0, 0.0, 0.0) for x in clustered_data["clusternum"]]
 
-def distance_hist(selected_cluster, distcen_in, distiqr_in, step, palette):
+def distance_hist(selected_cluster, distcen, distiqr, step, palette):
     """ A subplot illustrating the cluster distance histogram.  Additionally, the median
     cluster distance and distance IQR are plotted. IQR is preferred for potentially
     non-normally distributed data."""
     plt.subplot(223)
     plt.xlabel("Distance (pc)", fontsize=15)
     plt.ylabel("Number", fontsize=15)
-    plt.xlim(distcen_in-250, distcen_in+250)
-    bins = np.linspace(distcen_in-300, distcen_in+300, 30)
+    plt.xlim(distcen-250, distcen+250)
+    bins = np.linspace(distcen-300, distcen+300, 30)
     plt.hist(selected_cluster["distance"], bins, alpha=0.5, color=palette[step])
-    plt.gcf().text(0.09, 0.43, "Distance = "+str(int(distcen_in))+" pc", fontsize=12)
-    plt.gcf().text(0.32, 0.43, "Distance IQR = "+str(int(distiqr_in))+" pc", fontsize=12)
+    plt.gcf().text(0.09, 0.43, "Distance = "+str(int(distcen))+" pc", fontsize=12)
+    plt.gcf().text(0.32, 0.43, "Distance IQR = "+str(int(distiqr))+" pc", fontsize=12)
 
 
-def ra_dec_plot_setup(clustered_data, distcen_in, selected_cluster):
+def ra_dec_plot_setup(clustered_data, distcen, selected_cluster):
     """ A subplot illustrating the cluster scaled RA and DEC is setup.  The median cluster
     RA and DEC and their IQR in pc space are plotted.  """
     plt.subplot(222)
@@ -54,7 +54,7 @@ def ra_dec_plot_setup(clustered_data, distcen_in, selected_cluster):
     ramax = max(clustered_data["ratransform"])
     decmin = min(clustered_data["dec"])
     decmax = max(clustered_data["dec"])
-    raiqr = iqr_calc_angle(selected_cluster, distcen_in, "ratransform")
+    raiqr = iqr_calc_angle(selected_cluster, distcen, "ratransform")
     ramedian = np.median(selected_cluster["rawrapped"])
 
     # The texts are placed in data space, which pushes them outside the plot and automatically
@@ -63,7 +63,7 @@ def ra_dec_plot_setup(clustered_data, distcen_in, selected_cluster):
     plt.text(ramin+(ramax-ramin)*0.6, decmax+(decmax-decmin)*0.16, "RA IQR =\
      "+str(round(raiqr, 2))+" pc", fontsize=12)
     decmedian = np.median(selected_cluster["dec"])
-    deciqr = iqr_calc_angle(selected_cluster, distcen_in, "dec")
+    deciqr = iqr_calc_angle(selected_cluster, distcen, "dec")
     plt.text(ramin, decmax+(decmax-decmin)*0.08, "DEC = "+str(round(decmedian, 3)), fontsize=12)
     plt.text(ramin+(ramax-ramin)*0.6, decmax+(decmax-decmin)*0.08, "DEC IQR =\
      "+str(round(deciqr, 2))+" pc", fontsize=12)
@@ -113,7 +113,7 @@ def plot_map(unique_group, clustered_dict, cmapdict, normalize, step, xvar_col, 
             plt.scatter(clustered_dict[group][xvar_col], clustered_dict[group][yvar_col], s=0.02,\
              alpha=1, c=clustered_dict[group]["clusterprob"], cmap=cmapdict[group], norm=normalize)
 
-def plot_map3D(real_clusters, clustered_dict, cmapdict, normalize, step, selected_cluster, distcen_in):
+def plot_map3D(real_clusters, clustered_dict, cmapdict, normalize, step, selected_cluster, distcen):
     """ For when a membership probability color map is desired (i.e., membership_plot == 1 or 2).
     This function plots each cluster separately with its own separate color map, while
     it plots non-clustered data as simply black."""
@@ -121,13 +121,13 @@ def plot_map3D(real_clusters, clustered_dict, cmapdict, normalize, step, selecte
     ax.set_xlabel("RA (pc)", fontsize=12)
     ax.set_ylabel("DEC (pc)", fontsize=12)
     ax.set_zlabel("Distance (pc)", fontsize=12)
-    selected_cluster["ra3D"]=selected_cluster["ratransform"]*3.14159/180*distcen_in
-    selected_cluster["dec3D"]=selected_cluster["dectransform"]*3.14159/180*distcen_in
+    selected_cluster["ra3D"]=selected_cluster["ratransform"]*3.14159/180*distcen
+    selected_cluster["dec3D"]=selected_cluster["dectransform"]*3.14159/180*distcen
     dimension = (max(selected_cluster["ra3D"]) - min(selected_cluster["ra3D"]) +\
      max(selected_cluster["dec3D"]) - min(selected_cluster["dec3D"]))/4
     ax.set_xlim(min(selected_cluster["ra3D"]),max(selected_cluster["ra3D"]))
     ax.set_ylim(min(selected_cluster["dec3D"]),max(selected_cluster["dec3D"]))
-    ax.set_zlim(distcen_in-dimension,distcen_in+dimension)
+    ax.set_zlim(distcen-dimension,distcen+dimension)
     for group in real_clusters:
         if group == step:
             ax.scatter3D(clustered_dict[group]["ratransform"]*3.14159/180*clustered_dict[group]["distance"],\

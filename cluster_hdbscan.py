@@ -94,7 +94,7 @@ def parameter_scaler(fieldparscaled, fieldpar):
      notably with increasing distance, the cluster distance and PM variations of
      true members increase due to increased errors. I recommend scaling these so
      that the output unscaled IQRs of the cluster members for each parameter are
-     roughly equal by adjusted what fieldpar['distance'] is divided by and what
+     roughly equal by adjusting what fieldpar['distance'] is divided by and what
      fieldpar['pmra'] and ['pmdec'] are multiplied by. """
 
     fieldparscaled['parallax'] = fieldpar['distance']/5

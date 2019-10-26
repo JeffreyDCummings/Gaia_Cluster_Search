@@ -116,7 +116,7 @@ def clustering_algorithm(fieldparscaled, fieldpar):
      create a cleaner cluster main sequence, BUT at the expense of removing many
      cluster giants/subdwarfs/white dwarfs. """
 
-    clustering = hdbscan.HDBSCAN(min_cluster_size=50, min_samples=MIN_SAMPLE).\
+    clustering = hdbscan.HDBSCAN(min_cluster_size=50, min_samples=MIN_SAMPLE, cluster_selection_method="leaf").\
         fit(fieldparscaled[["ra", "dec", "pmra", "pmdec", "parallax"]])
         # ,"phot_g_mean_mag","bp_rp"]])
 
@@ -144,8 +144,10 @@ def white_dwarf_identification(fieldpar):
     for step in range(max(fieldpar.clusternum.unique())+1):
         distcen = np.median(fieldpar.loc[fieldpar["clusternum"] == step, ["distance"]])
         distiqr = spy.iqr(fieldpar.loc[fieldpar["clusternum"] == step, ["distance"]])
-        pmraiqr = iqr_calc_angle(fieldpar, step, distcen, "pmra")*0.271795
-        pmdeciqr = iqr_calc_angle(fieldpar, step, distcen, "pmdec")*0.271795
+        pmraiqr = iqr_calc_angle(fieldpar.loc[fieldpar["clusternum"] == step], distcen,\
+         "pmra")*0.271795
+        pmdeciqr = iqr_calc_angle(fieldpar.loc[fieldpar["clusternum"] == step], distcen,\
+         "pmdec")*0.271795
         true_cluster = []
         if (pmraiqr < 3 and pmdeciqr < 3 and distiqr < 500):
             true_cluster.append(step)
