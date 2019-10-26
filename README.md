@@ -9,11 +9,13 @@ clusters of variable density (unlike the similar DBSCAN) and allows the definiti
 does not cluster small spurious overdensities that can happen in big data sets and do not represent true clusters.  Testing this on 
 multiple fields shows that it is very successful in identifying one to multiple clusters within a single field, while typically not 
 clustering field stars.  However, the overdensity of field stars near proper motions of approximately 0,0 are commonly clustered, but they
-produce one large cluster with a large proper motion dispersion that is very distinct from true clusters with narrow dispersions.  Hence, 
-these false clusters can be filtered out in the final analysis.
+produce one large cluster with a large proper motion dispersion that is very distinct from true clusters with narrow dispersions.
+Additionally, these false star clusters tend to have large distance dispersions and be primarly composed of faint stars that do not create
+a main sequence like structure in color and magnitude.  Hence, these false clusters can be filtered out in the final analysis.
 
-This directory contains several files: The python programs: gaia_search.py, cluster_hdbscan.py, and cluster_plot.py, and several example 
-Gaia field csv files: blanco1gaiafield2.5.csv, velaOB2gaiafield2.csv, and n2422.n2423gaiafield2.csv.
+This directory contains several files: The python programs: gaia_search.py, cluster_hdbscan.py, and cluster_plot.py, 
+cluster_hdbscan_wdsearch.py, and several example Gaia field csv files: blanco1gaiafield2.5.csv, velaOB2gaiafield2.csv, and 
+n2422.n2423gaiafield2.csv.
 
 These files are described in more detail below:
 
