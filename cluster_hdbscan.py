@@ -2,7 +2,10 @@
 import hdbscan
 import numpy as np
 import pandas as pd
+import warnings
 from cluster_plot import cluster_plot
+
+warnings.filterwarnings("ignore")
 
 # This selects which output cluster data the program will write to a csv file
 # for subsequent analysis.  The star cluster of interest is commonly "0", but
@@ -11,18 +14,21 @@ from cluster_plot import cluster_plot
 CLUSTER_EXTRACT_NUM = 0
 
 # This flag determines whether or not to add a colormap representing each
-# star's cluster membership probability to the final cluster plots.  Enter 1
-# for yes and 0 (or anything that isn't 1) for no.  Plotting probabilities is
-# recommended, but when probability information isn't critical and simpler
+# star's cluster membership probability to the final cluster plots, and whether
+# or not to plot the cluster spatial field in a separate 3D plot.  Enter 1
+# for color map without 3D plot, 2 for color map with 3D plot, and 0 (or 
+# anything that isn't 1 or 2) for neither.  Plotting probabilities and 3D plots in 
+# is recommended, but when probability and/or 3D visualization aren't critical and simpler
 # easier to read figures are desired, consider not adding the information.
-PLOT_MEMBERSHIP_PROB = 1
+PLOT_MEMBERSHIP_PROB = 2
 
 # CLUSTER_NAME identifies the input file (usually using some type of
 # shorthand) and output cluster file names.  FIELD_RADIUS is the input
 # GAIA DR2 search radius (in degrees), and is part of the input csv filename.
-CLUSTER_NAME = "velaOB2"
+CLUSTER_NAME = "n2422.n2423"
 FIELD_RADIUS = 2
 
+MIN_SAMPLE = 98
 
 def gaia_dr2_read_setup():
     """ Read the input csv file (from GaiaSearch.py) into a dataframe.  Return the
@@ -31,10 +37,12 @@ def gaia_dr2_read_setup():
     clusterfull = pd.read_csv(CLUSTER_NAME+"gaiafield"+str(FIELD_RADIUS)+".csv", delimiter=",")
 
 # A second dataframe is created that only contains the parameters that will
-# be used to base the HDBSCAN clustering on and for analyzing the results; stars
-# that are missing a parameter are dropped.
-    fieldparfull = clusterfull[["ra", "dec", "pmra", "pmdec", "parallax", \
-        "phot_g_mean_mag", "bp_rp"]]
+# be used to base the HDBSCAN clustering on and for analyzing the results, and this command
+# also allows the user to make further parallax error ratio cuts beyond the standard < 3; lastly, 
+# stars that are missing a parameter are dropped.
+    clusterfull["parallax_ratio"] = clusterfull["parallax"] / clusterfull["parallax_error"]
+    fieldparfull = clusterfull.loc[clusterfull["parallax_ratio"] > 5, ["ra", "dec", "pmra",\
+     "pmdec", "parallax", "phot_g_mean_mag", "bp_rp"]]
     fieldpar = fieldparfull.dropna().copy()
 
 # A new distance (pc) column is created in the dataframe based on the observed
@@ -51,25 +59,32 @@ def ra_wrapper(ra_dataframe):
     in those regions."""
     ramax = max(ra_dataframe["ra"])
     ramin = min(ra_dataframe["ra"])
-
+    wrap_check = 0
+    ra_dataframe["rawrapped"] = ra_dataframe["ra"]
     # If the maximum and minimum RA are more than 200 degrees apart, it is safe to
     # assume that this is because they span RA=0,360.  In this case, the minimum
     # of the large values (~355 deg) and the maximum of the small value (~5 deg)
     # must be calculated/corrected and then applied to properly scale and tie
     # together the RA.
     if ramax - ramin > 200:
+        wrap_check = 1
         ramax = ra_dataframe.loc[ra_dataframe["ra"] < 200, ["ra"]].max().at["ra"]
         ramin = ra_dataframe.loc[ra_dataframe["ra"] > 200, ["ra"]].min().at["ra"]
-        if ramin < 360 - ramax:
-            ramin += 360
+        if ramin < (360 - ramax):
+            ramax += 360
+            ra_dataframe.loc[ra_dataframe['rawrapped'] >= 0, 'rawrapped'] = \
+             ra_dataframe['rawrapped']+360
         else:
-            ramax -= 360
+            ramin -= 360
+            ra_dataframe.loc[ra_dataframe['rawrapped'] > 180, 'rawrapped'] = \
+             ra_dataframe['rawrapped']-360
     racen = (ramin + ramax)/2
     ra_dataframe["ratransform"] = ra_dataframe["ra"] - racen
-    ra_dataframe.loc[ra_dataframe['ratransform'] > 300, 'ratransform'] = \
-        ra_dataframe['ratransform']-360
-    ra_dataframe.loc[ra_dataframe['ratransform'] < -300, 'ratransform'] =\
-        ra_dataframe['ratransform']+360
+    if wrap_check == 1:
+        ra_dataframe.loc[ra_dataframe['ratransform'] > 180, 'ratransform'] = \
+         ra_dataframe['ratransform']-360
+        ra_dataframe.loc[ra_dataframe['ratransform'] < -180, 'ratransform'] = \
+         ra_dataframe['ratransform']+360
     return ra_dataframe
 
 
@@ -84,12 +99,12 @@ def parameter_scaler(fieldparscaled, fieldpar):
 
     fieldparscaled['parallax'] = fieldpar['distance']/5
     fieldparscaled['ratransform'] = fieldparscaled['ratransform']* \
-        np.cos(fieldparscaled["dec"]*3.14159/180)
+        np.cos(fieldpar["dec"]*3.14159/180)
     fieldparscaled['ra'] = fieldparscaled['ratransform']*3.14159/180* \
         fieldpar['distance']
     fieldparscaled['dec'] = fieldpar['dec']*3.14159/180*fieldpar['distance']
-    fieldparscaled['pmra'] = fieldpar['pmra']*10
-    fieldparscaled['pmdec'] = fieldpar['pmdec']*10
+    fieldparscaled['pmra'] = fieldpar['pmra']*35
+    fieldparscaled['pmdec'] = fieldpar['pmdec']*35
     return fieldparscaled
 
 
@@ -106,7 +121,7 @@ def clustering_algorithm(fieldparscaled, fieldpar):
      create a cleaner cluster main sequence, BUT at the expense of removing many
      cluster giants/subdwarfs/white dwarfs. """
 
-    clustering = hdbscan.HDBSCAN(min_cluster_size=100, min_samples=64).\
+    clustering = hdbscan.HDBSCAN(min_cluster_size=50, min_samples=MIN_SAMPLE, cluster_selection_method="leaf").\
         fit(fieldparscaled[["ra", "dec", "pmra", "pmdec", "parallax"]])
         # ,"phot_g_mean_mag","bp_rp"]])
 
@@ -117,6 +132,7 @@ def clustering_algorithm(fieldparscaled, fieldpar):
     fieldpar["clusternum"] = clusterselection.tolist()
     fieldpar["clusterprob"] = clusterprobabilities.tolist()
     fieldpar["ratransform"] = fieldparscaled["ratransform"]
+    fieldpar["rawrapped"] = fieldparscaled["rawrapped"]
 
     # The stars absolute G (based on Gaia parallax) is calculated and the selected
     # CLUSTER_EXTRACT_NUM cluster is output to a csv file.
