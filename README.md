@@ -32,16 +32,18 @@ WHERE CONTAINS(POINT('ICRS',gaiadr2.gaia_source.ra,gaiadr2.gaia_source.dec),CIRC
 cluster_hdbscan.py:
 With the input cluster field csv, the stellar parameters (RA, DEC, distance, and 2D proper motions) are scaled for a more appropriate 
 dimension for clustering.  Additionally, RA is wrapped around if necessary.  These are input to the HDBSCAN method, and the clustering 
-result and membership probability are created and added to the dataframe.  The selected cluster number's data is output to a csv file for 
-future analysis.  Lastly, this entire dataframe and whether the membership probability is desired to be displayed is input into our 
+results and membership probabilities are created and added to the dataframe.  The selected cluster number's data is output to a csv file
+for future analysis.  Lastly, this entire dataframe and whether the membership probability is desired to be displayed is input into our 
 defined clusterplot method.  
 
 cluster_plot.py:
 This method plots the important output information for each cluster that passes the necessary proper motion distribution cut (e.g., Each 
-dimensions PM IQR in physical space is less than 3 km/s).  These clusters are color coded and plotted in proper motion space, scaled RA 
-and DEC space, distance, and M_G and bp-rp space.  If membership probabilities are requested, a color map is applied to each cluster's 
-data points to represent these probabilities.  A different figure window is produced for each cluster and their members are given larger
-data size relative to the other clusters/nonclustered data for clarity/comparison.
+dimensions PM IQR in physical space is less than 3 km/s), the distance distribution cut (distance IQR less than 300 pc), and a check that
+at least not more than 80% of the clustered stars have M_G fainter than 10.  These clusters are color coded and plotted in proper motion
+space, scaled RA and DEC space, distance, and M_G and bp-rp space.  If membership probabilities are requested, a color map is applied to 
+each cluster's data points to represent these probabilities.  A different figure window is produced for each cluster and their members are
+given larger data size relative to the other clusters/nonclustered data for clarity/comparison.  Lastly, if a 3D plot is requested, each
+cluster has an additional plot window centered on its 3D spatial information, and all other nearby clusters are shown for reference.
 
 cluster_hdbscan_wdsearch.py:
 This program is a variant of cluster_hdbscan.py that performs that same analysis while also checking if clusters that are consistent with
